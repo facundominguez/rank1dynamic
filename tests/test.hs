@@ -1,5 +1,9 @@
 #if !MIN_VERSION_base(4,7,0)
 {-# LANGUAGE ScopedTypeVariables #-}
+#if !MIN_VERSION_base(4,6,0)
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE KindSignatures #-}
+#endif
 #endif
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -22,10 +26,19 @@ main = defaultMain tests
 
 #if MIN_VERSION_base(4,7,0)
 deriving instance Typeable Monad
-#else
+#elif MIN_VERSION_base(4,6,0)
 instance Typeable.Typeable1 m => Typeable (Monad m) where
   typeOf = Typeable.mkTyConApp (Typeable.mkTyCon3 "base" "GHC.Base" "Monad")
              [ Typeable.typeOf1 (undefined :: m a) ]
+#else
+data MonadDict m = Monad m => MonadDict
+
+instance Typeable.Typeable1 m => Typeable (MonadDict m) where
+  typeOf _ = Typeable.mkTyConApp (Typeable.mkTyCon3 "main" "Main" "MonadDict")
+               [ Typeable.typeOf1 (undefined :: m a) ]
+
+returnD :: MonadDict m -> a -> m a
+returnD MonadDict = return
 #endif
 
 tests :: [Test]
@@ -62,13 +75,23 @@ tests =
       , testCase "CAN use a term of type 'forall a. a -> m a' as 'Int -> Maybe Int'" $
           typeOf (undefined :: Int -> Maybe Int)
             `isInstanceOf`
+#if MIN_VERSION_base(4,6,0)
                typeOf (undefined :: ANY1 -> ANY ANY1)
+#else
+               typeOf (undefined :: ANY1 -> ANY (ANY1 :: *))
+#endif
           @?= Right ()
 
       , testCase "CAN use a term of type 'forall a. Monad a => a -> m a' as 'Int -> Maybe Int'" $
+#if MIN_VERSION_base(4,6,0)
           typeOf (reifyConstraints return :: Dict (Monad Maybe) -> Int -> Maybe Int)
             `isInstanceOf`
                typeOf (reifyConstraints return :: Dict (Monad ANY) -> ANY1 -> ANY ANY1)
+#else
+          typeOf (returnD :: MonadDict Maybe -> Int -> Maybe Int)
+            `isInstanceOf`
+               typeOf (returnD :: MonadDict ANY -> ANY1 -> ANY (ANY1 :: *))
+#endif
           @?= Right ()
       ]
 
@@ -131,8 +154,13 @@ tests =
 #endif
 
       , testCase "CAN use a term of type 'forall a. Monad a => a -> m a' as 'Int -> Maybe Int'" $
+#if MIN_VERSION_base(4,6,0)
           do f <- fromDynamic (toDynamic (reifyConstraints return :: Dict (Monad Maybe) -> Int -> Maybe Int))
              return $ (abstractConstraints (f :: Dict (Monad Maybe) -> Int -> Maybe Int)) 0
+#else
+          do f <- fromDynamic (toDynamic (returnD :: MonadDict Maybe -> Int -> Maybe Int))
+             return $ ((f :: MonadDict Maybe -> Int -> Maybe Int) MonadDict) 0
+#endif
           @?= Right (Just 0)
       ]
 

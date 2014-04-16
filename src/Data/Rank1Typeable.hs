@@ -114,10 +114,12 @@ module Data.Rank1Typeable
   , ANY7
   , ANY8
   , ANY9
+#if MIN_VERSION_base(4,6,0)
     -- * Manipulation of constraints
   , Dict(..)
   , reifyConstraints
   , abstractConstraints
+#endif
     -- * Re-exports from Typeable
   , Typeable
   ) where
@@ -146,7 +148,11 @@ import Data.Typeable
 import Data.Typeable.Internal (listTc, funTc, TyCon(TyCon), tyConName)
 import Data.Binary (Binary(get, put))
 import GHC.Fingerprint.Type (Fingerprint(..))
+#if MIN_VERSION_base(4,6,0)
 import GHC.Exts(Any, Constraint)
+#else
+import GHC.Exts(Any)
+#endif
 import qualified Data.Typeable as Typeable
   ( TypeRep
   , typeOf
@@ -305,6 +311,7 @@ type ANY9 = TypVar V9
 data Dict c = c => Dict
   deriving Typeable
 
+#if MIN_VERSION_base(4,6,0)
 #if MIN_VERSION_base(4,7,0)
 deriving instance Typeable (() :: Constraint)
 #else
@@ -321,6 +328,7 @@ reifyConstraints x Dict = x
 -- a function with constraints.
 abstractConstraints :: c => (Dict c -> a) -> a
 abstractConstraints f = f Dict
+#endif
 
 --------------------------------------------------------------------------------
 -- Operations on type reps                                                    --
