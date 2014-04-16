@@ -47,4 +47,5 @@ Test-Suite TestRank1Dynamic
                      test-framework >= 0.6 && < 0.9,
                      test-framework-hunit >= 0.2.0 && < 0.4
   ghc-options:       -Wall -Werror
+  Extensions:        CPP
   HS-Source-Dirs:    tests

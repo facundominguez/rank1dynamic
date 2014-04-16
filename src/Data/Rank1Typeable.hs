@@ -128,7 +128,21 @@ import Control.Monad (void)
 import Control.Applicative ((<$>))
 import Data.List (intersperse, isPrefixOf)
 import Data.Maybe (fromMaybe)
+#if MIN_VERSION_base(4,7,0)
 import Data.Typeable (Typeable, mkTyCon3)
+#else
+import Data.Typeable
+  ( Typeable
+  , mkTyCon3
+  , Typeable1(..)
+  , Typeable2(..)
+  , Typeable3(..)
+  , Typeable4(..)
+  , Typeable5(..)
+  , Typeable6(..)
+  , Typeable7(..)
+  )
+#endif
 import Data.Typeable.Internal (listTc, funTc, TyCon(TyCon), tyConName)
 import Data.Binary (Binary(get, put))
 import GHC.Fingerprint.Type (Fingerprint(..))
@@ -226,14 +240,40 @@ skolem = let (c, _) = splitTyConApp (typeOf (undefined :: Skolem V0)) in c
 --------------------------------------------------------------------------------
 
 -- | Internal tag to distinguish our uses of Any from user's.
-data T        deriving Typeable
+data T               deriving Typeable
 
 type TypVar = Any T
-data Skolem a deriving Typeable
-data Zero     deriving Typeable
-data Succ a   deriving Typeable
+data Skolem (a :: *) deriving Typeable
+data Zero            deriving Typeable
+data Succ   (a :: *) deriving Typeable
 
+#if MIN_VERSION_base(4,7,0)
 deriving instance Typeable Any
+#else
+instance Typeable Any where
+  typeOf _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable1 Any where
+  typeOf1 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable2 Any where
+  typeOf2 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable3 Any where
+  typeOf3 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable4 Any where
+  typeOf4 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable5 Any where
+  typeOf5 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable6 Any where
+  typeOf6 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+
+instance Typeable7 Any where
+  typeOf7 _ = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Any") []
+#endif
 
 type V0 = Zero
 type V1 = Succ V0
@@ -265,7 +305,12 @@ type ANY9 = TypVar V9
 data Dict c = c => Dict
   deriving Typeable
 
+#if MIN_VERSION_base(4,7,0)
 deriving instance Typeable (() :: Constraint)
+#else
+instance Typeable (() :: Constraint) where
+  typeOf = Typeable.mkTyConApp (mkTyCon3 "ghc-prim" "GHC.Prim" "Constraint") []
+#endif
 
 -- | Converts a function with constraints into a function with an
 -- explicit dictionary argument.

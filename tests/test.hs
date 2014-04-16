@@ -1,3 +1,6 @@
+#if !MIN_VERSION_base(4,7,0)
+{-# LANGUAGE ScopedTypeVariables #-}
+#endif
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -5,6 +8,9 @@
 import Data.Rank1Typeable
 import Data.Rank1Dynamic
 
+#if !MIN_VERSION_base(4,7,0)
+import qualified Data.Typeable as Typeable (Typeable(..),Typeable1(..), mkTyCon3, mkTyConApp)
+#endif
 import Test.HUnit hiding (Test)
 import Test.Framework
 import Test.Framework.Providers.HUnit
@@ -14,7 +20,13 @@ import Unsafe.Coerce
 main :: IO ()
 main = defaultMain tests
 
+#if MIN_VERSION_base(4,7,0)
 deriving instance Typeable Monad
+#else
+instance Typeable.Typeable1 m => Typeable (Monad m) where
+  typeOf = Typeable.mkTyConApp (Typeable.mkTyCon3 "base" "GHC.Base" "Monad")
+             [ Typeable.typeOf1 (undefined :: m a) ]
+#endif
 
 tests :: [Test]
 tests =
@@ -41,7 +53,11 @@ tests =
 
       , testCase "CANNOT use a term of type 'forall a. a -> a' as 'forall a. a'" $
           typeOf (undefined :: ANY) `isInstanceOf` typeOf (undefined :: ANY -> ANY)
+#if MIN_VERSION_base(4,7,0)
           @?= Left "Cannot unify Skolem and (->)"
+#else
+          @?= Left "Cannot unify Skolem and ->"
+#endif
 
       , testCase "CAN use a term of type 'forall a. a -> m a' as 'Int -> Maybe Int'" $
           typeOf (undefined :: Int -> Maybe Int)
@@ -108,7 +124,11 @@ tests =
 
       , testCase "CANNOT use a term of type 'forall a. a -> a' as 'forall a. a'" $
           do f <- fromDynamic (toDynamic (id :: ANY -> ANY)) ; return $ (f :: Int)
+#if MIN_VERSION_base(4,7,0)
           @?= Left "Cannot unify Int and (->)"
+#else
+          @?= Left "Cannot unify Int and ->"
+#endif
 
       , testCase "CAN use a term of type 'forall a. Monad a => a -> m a' as 'Int -> Maybe Int'" $
           do f <- fromDynamic (toDynamic (reifyConstraints return :: Dict (Monad Maybe) -> Int -> Maybe Int))
